@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Wrapper to run sbt from Coursier install if sbt is not in PATH.
+SBT_DIR="${HOME}/Library/Application Support/Coursier/bin"
+if [[ -x "${SBT_DIR}/sbt" ]]; then
+  exec "${SBT_DIR}/sbt" "$@"
+fi
+if command -v sbt >/dev/null 2>&1; then
+  exec sbt "$@"
+fi
+echo "sbt not found. Install with: ./.sbt-bin/cs install sbt" 1>&2
+echo "Then add to PATH: export PATH=\"\$PATH:${SBT_DIR}\"" 1>&2
+exit 1
