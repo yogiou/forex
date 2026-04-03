@@ -23,6 +23,8 @@ class RatesHttpRoutes[F[_]: Sync](rates: RatesProgram[F]) extends Http4sDsl[F] {
       (Status.BadGateway, ApiError(message = msg, code = Some("rate_lookup_failed")))
     case programErrors.Error.RateLimitExceeded(msg) =>
       (Status.TooManyRequests, ApiError(message = msg, code = Some("rate_limit_exceeded")))
+    case programErrors.Error.ServiceUnavailable(msg) =>
+      (Status.ServiceUnavailable, ApiError(message = msg, code = Some("service_unavailable")))
   }
 
   private val httpRoutes: HttpRoutes[F] = HttpRoutes.of[F] {

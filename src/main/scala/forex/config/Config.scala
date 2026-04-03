@@ -12,8 +12,14 @@ object Config {
     */
   def stream[F[_]: Sync](path: String): Stream[F, ApplicationConfig] =
     Stream.eval(
-      Sync[F].delay(
-        ConfigSource.default.at(path).loadOrThrow[ApplicationConfig]
-      )
+      Sync[F].delay {
+        val config = ConfigSource.default.at(path).loadOrThrow[ApplicationConfig]
+        require(
+          config.oneframe.cacheTtlMinutes >= 2 && config.oneframe.cacheTtlMinutes <= 5,
+          s"oneframe.cache-ttl-minutes must be between 2 and 5 (was ${config.oneframe.cacheTtlMinutes}). " +
+            "Below 2: 1440/day exceeds One-Frame's 1000/day limit. Above 5: violates the 5-minute freshness requirement."
+        )
+        config
+      }
     )
 }

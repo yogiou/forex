@@ -35,5 +35,19 @@ class ProgramSpec extends AnyFreeSpec with Matchers {
       val result  = program.get(Protocol.GetRatesRequest(Currency.USD, Currency.JPY)).unsafeRunSync()
       result shouldBe Left(forex.programs.rates.errors.Error.RateLimitExceeded("One-Frame 429: daily limit exceeded"))
     }
+    "returns ServiceUnavailable when service returns StaleRate" in {
+      val service: RatesService[IO] =
+        _ => IO.pure(Left(forex.services.rates.errors.Error.StaleRate("Rate is stale")))
+      val program = Program[IO](service)
+      val result  = program.get(Protocol.GetRatesRequest(Currency.USD, Currency.JPY)).unsafeRunSync()
+      result shouldBe Left(forex.programs.rates.errors.Error.ServiceUnavailable("Rate is stale"))
+    }
+    "returns ServiceUnavailable when service returns CacheNotReady" in {
+      val service: RatesService[IO] =
+        _ => IO.pure(Left(forex.services.rates.errors.Error.CacheNotReady("Rates not yet available")))
+      val program = Program[IO](service)
+      val result  = program.get(Protocol.GetRatesRequest(Currency.USD, Currency.JPY)).unsafeRunSync()
+      result shouldBe Left(forex.programs.rates.errors.Error.ServiceUnavailable("Rates not yet available"))
+    }
   }
 }

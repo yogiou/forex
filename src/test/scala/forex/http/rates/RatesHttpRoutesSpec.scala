@@ -96,6 +96,21 @@ class RatesHttpRoutesSpec extends AnyFreeSpec with Matchers {
       val resp                      = runRequest(routes, req)
       resp.status shouldEqual Status.BadRequest
     }
+    "GET /rates?from=USD&to=JPY returns 503 and service_unavailable when cache is not ready" in {
+      val program: RatesProgram[IO] =
+        _ => IO.pure(Left(ProgramError.ServiceUnavailable("Rates not yet available, please retry shortly")))
+      val routes = new RatesHttpRoutes[IO](program).routes
+      val req    = Request[IO](Method.GET, uri"/rates?from=USD&to=JPY")
+      val resp   = runRequest(routes, req)
+      resp.status shouldEqual Status.ServiceUnavailable
+      val body    = resp.as[String].unsafeRunSync()
+      val decoded = decode[ApiError](body)
+      decoded shouldBe a[Right[_, _]]
+      decoded.foreach { e =>
+        e.code shouldEqual Some("service_unavailable")
+        e.message should include("retry")
+      }
+    }
     "GET /rates?from=XXX&to=JPY returns 400 with invalid_currency code and descriptive message" in {
       val program: RatesProgram[IO] = _ => IO.pure(Left(ProgramError.RateLookupFailed("unused")))
       val routes                    = new RatesHttpRoutes[IO](program).routes

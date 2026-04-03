@@ -36,9 +36,14 @@ class CircuitBreakingRatesServiceSpec extends AnyFreeSpec with Matchers {
     "when backend returns OneFrameRateLimitExceeded, records success for breaker (rate-limit does not open circuit)" in {
       val pair                 = Rate.Pair(Currency.USD, Currency.JPY)
       val backend: Algebra[IO] = _ => IO.pure(Left(Error.OneFrameRateLimitExceeded("429 quota")))
-      val config               = CircuitBreakerConfig(enabled = true, minimumNumberOfCalls = 2, slidingWindowSize = 2, failureRateThreshold = 50f)
-      val cb                   = CircuitBreakerFactory.create("test-rate-limit", config)
-      val service              = new CircuitBreakingRatesService[IO](backend, cb)
+      val config               = CircuitBreakerConfig(
+        enabled = true,
+        minimumNumberOfCalls = 2,
+        slidingWindowSize = 2,
+        failureRateThreshold = 50f
+      )
+      val cb      = CircuitBreakerFactory.create("test-rate-limit", config)
+      val service = new CircuitBreakingRatesService[IO](backend, cb)
       (0 until 2).foreach(_ => service.get(pair).unsafeRunSync())
       val third = service.get(pair).unsafeRunSync()
       third shouldBe Left(Error.OneFrameRateLimitExceeded("429 quota"))
